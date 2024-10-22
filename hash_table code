@@ -1,0 +1,99 @@
+class Node:
+    def __init__(self,key,value):
+        self.key=key
+        self.value=value
+        self.next =None
+        self.prior= None
+class HashTable:
+    def __init__(self,seed_limit=8,hash_function=None):
+        self.limit=seed_limit
+        self.volume=0
+        self.table=[None] *self.limit
+        self.load_factor_threshold= 0.75
+        self.shrink_factor_threshold=0.25
+        self.hash_function=hash_function or self.default_hash_function
+    def default_hash_function(self,key):
+        A=0.6180339887  
+        index_mul=int(self.limit*((key*A)%1))%self.limit
+        index_div=key%self.limit
+        return(index_mul+index_div)%self.limit
+    def modifysize(self,new_limit):
+        vintage_table=self.table
+        self.table=[None]*new_limit
+        self.limit=new_limit
+        self.volume=0
+        for head in vintage_table:
+            available=head
+            while available:
+                self.addEntry(available.key,available.value)
+                available=available.next
+    def addEntry(self,key,value):
+        if self.volume>=self.limit*self.load_factor_threshold:
+            self.modifysize(self.limit*2)
+        position=self.hash_function(key)
+        new_node=Node(key,value)
+        if self.table[position] is None:
+            self.table[position]=new_node
+        else:
+            available=self.table[position]
+            while available:
+                if available.key==key:
+                    available.value=value  
+                    return
+                if available.next is None:
+                    break
+                available=available.next
+            available.next=new_node
+            new_node.prior= available
+        self.volume+= 1
+    def obtain(self,key):
+        position=self.hash_function(key)
+        available= self.table[position]
+        while available:
+            if available.key== key:
+                return available.value
+            available=available.next
+        return None 
+    def extract(self, key):
+        position=self.hash_function(key)
+        available=self.table[position]
+        while available:
+            if available.key==key:
+                if available.prior:
+                    available.prior.next = available.next
+                else:
+                    self.table[position] = available.next
+                if available.next:
+                    available.next.prior = available.prior
+                self.volume -= 1
+                if self.volume <= self.limit * self.shrink_factor_threshold and self.limit > 8:
+                    self.resize(self.limit // 2)
+                return
+            available = available.next
+    def print_table(self):
+        for i, head in enumerate(self.table):
+            print(f"[{i}]:", end=" ")
+            available = head
+            while available:
+                print(f"({available.key},{available.value})", end=" <-> ")
+                available = available.next
+            print()
+# Example usage
+if __name__ == "__main__":
+    ht = HashTable()
+    # Insert key-value pairs
+    ht.addEntry(1, 12)
+    ht.addEntry(14, 77)
+    ht.addEntry(18, 46)
+    ht.addEntry(16, 94)
+    ht.addEntry(19, 33)
+    ht.addEntry(25, 36)
+    ht.addEntry(29, 78)
+    ht.addEntry(35, 99)
+    print("Hash Table:")
+    ht.print_table()
+    print("\nValue for key 25:", ht.obtain(25))
+    # Remove a key
+    ht.extract(19)
+    print("\nAfter removing key 19:")
+    ht.print_table()
